@@ -1,0 +1,129 @@
+---
+title: "Prep for Anya and Wanshu"
+author: "G. Moroz"
+date: "3/23/2021"
+output: 
+  html_document:
+    toc: true
+    number_sections: true
+    df_print: paged
+editor_options: 
+  chunk_output_type: console
+---
+
+# Libraries
+
+```{r}
+library(tidyverse)
+library(tidytext)
+theme_set(theme_bw()) # for visualising
+```
+
+* `tidyverse` - a package with packages (most important for us are `readr`, `dplyr`, `ggplot2`, `stringr`)
+* `tidytext` -- is a nice package for the text analysis, see the [online book](https://www.tidytextmining.com/) by Julia Silge and David Robinson.
+
+# Files
+
+Donwload the script and the file with the dictionary (I prefer work with columns from B to O, so it is better to remove the rest) and put them in the separate folder. E. g. there are two files in the current folder:
+
+```{r}
+list.files()
+```
+
+Read file into R:
+
+```{r, cache=TRUE}
+andic <- read_csv("andic_dicts.csv", 
+                  col_types = cols(ipa = col_character(),
+                                   concepticon = col_character(),
+                                   borrowing_source_word = col_character(),
+                                   borrowing_source_comment = col_character()))
+```
+
+Have a look:
+```{r}
+glimpse(andic)
+```
+
+# Extract segment frequencies
+
+Convert dataset to the table with one segment per row:
+
+```{r}
+andic %>%
+  filter(is.na(bor)) %>% 
+  distinct(ipa, glottocode) %>% 
+  mutate(id = 1:n()) %>% 
+  unnest_tokens(output = "segment", input = ipa, token = stringr::str_split, pattern = "-", drop = FALSE) %>% 
+  filter(!is.na(segment)) ->
+  unnested_andic
+glimpse(unnested_andic)
+```
+
+Extract singleton segment frequencies
+
+```{r}
+unnested_andic %>% 
+  count(glottocode, segment) %>% 
+  group_by(glottocode) %>% 
+  mutate(overall = sum(n),
+         ratio = n/overall) ->
+  segment_frequency_by_lang_long_format
+glimpse(segment_frequency_by_lang_long_format)
+```
+
+We can look at it:
+
+```{r}
+segment_frequency_by_lang_long_format %>% 
+  select(-n, -overall) %>% 
+  pivot_wider(names_from = glottocode, values_from = ratio)
+```
+
+Or even try to visualize:
+
+```{r}
+segment_frequency_by_lang_long_format %>% 
+  group_by(segment) %>%  # this and next 3 lines are for ordering segments
+  mutate(mean_ratio = mean(ratio)) %>% 
+  ungroup() %>% 
+  mutate(segment = fct_reorder(segment, mean_ratio)) %>% 
+  top_n(100) %>% 
+  ggplot(aes(ratio, segment, color = glottocode))+
+  geom_point()
+
+segment_frequency_by_lang_long_format %>% 
+  mutate(segment = reorder_within(segment, ratio, glottocode)) %>% 
+  group_by(glottocode) %>% 
+  top_n(25) %>% 
+  ggplot(aes(ratio, segment, color = glottocode))+
+  geom_point()+
+  facet_wrap(~glottocode, scales = "free_y")+
+  scale_y_reordered()
+```
+
+You can even filter some vowels/consononats
+```{r}
+segment_frequency_by_lang_long_format %>% 
+  filter(str_detect(segment, "[aoiue]")) %>% 
+  mutate(segment = reorder_within(segment, ratio, glottocode)) %>% 
+  group_by(glottocode) %>% 
+  top_n(25) %>% 
+  ggplot(aes(ratio, segment, color = glottocode))+
+  geom_point()+
+  facet_wrap(~glottocode, scales = "free_y")+
+  scale_y_reordered()
+
+segment_frequency_by_lang_long_format %>% 
+  filter(str_detect(segment, "[^aoiue]")) %>% 
+  mutate(segment = reorder_within(segment, ratio, glottocode)) %>% 
+  group_by(glottocode) %>% 
+  top_n(25) %>% 
+  ggplot(aes(ratio, segment, color = glottocode))+
+  geom_point()+
+  facet_wrap(~glottocode, scales = "free_y")+
+  scale_y_reordered()
+```
+
+
+
