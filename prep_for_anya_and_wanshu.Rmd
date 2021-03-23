@@ -11,6 +11,8 @@ editor_options:
   chunk_output_type: console
 ---
 
+[source](https://github.com/agricolamz/prep_for_anya_and_wanshu)
+
 # Libraries
 
 ```{r}
@@ -45,7 +47,7 @@ Have a look:
 glimpse(andic)
 ```
 
-# Extract segment frequencies
+# Extract singleton segment frequencies
 
 Convert dataset to the table with one segment per row:
 
@@ -125,5 +127,23 @@ segment_frequency_by_lang_long_format %>%
   scale_y_reordered()
 ```
 
+# Extract combined segment frequencies
+
+There are two types of combined segment frequencies:
+
+* simple calculation number of words that have selected pair of sounds
+* more like Markov Chain approach, where you model number of cases when one segment is following another
+
+For a moment I will work with the first option, but lets keep the second in mind.
+
+```{r, eval=FALSE}
+unnested_andic %>% 
+  distinct() %>% # remove repetitions
+  filter(id %in% c(3:5, 12157, 19455)) %>% 
+  nest(data = c(segment)) %>% 
+  map(data, function(i){
+    nrow(i)
+  })
+```
 
 
