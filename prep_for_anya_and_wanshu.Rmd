@@ -182,7 +182,7 @@ pairs %>%
   group_by(glottocode) %>% 
   mutate(overall = sum(n),
          ratio = n/overall) %>% 
-  top_n(20) %>% 
+  #top_n(20) %>% 
   mutate(pairs = reorder_within(pairs, ratio, glottocode)) %>% 
   ggplot(aes(ratio, pairs))+
   geom_point()+
@@ -229,3 +229,40 @@ unnested_andic_with_hash %>%
 ```
 
 As expected results are really different!
+
+
+Let's analyze features:
+
+```{r}
+andic %>%
+  filter(is.na(bor)) %>% 
+  mutate(glottocode = ifelse(glottocode == "botl1242", str_c(glottocode, " ", reference), glottocode)) %>% 
+  distinct(ipa, glottocode) %>% 
+  mutate(id = 1:n(),
+         ipa = str_c(ipa, "-#")) %>% 
+  unnest_tokens(output = "segment", input = ipa, token = stringr::str_split, pattern = "-", drop = FALSE) %>% 
+  filter(!is.na(segment),
+         str_detect(segment, "[aiuoe]")) %>% 
+  mutate(segment = case_when(
+    str_detect(segment, "[ie]") ~ "front",
+    str_detect(segment, "a") ~ "mid",
+    str_detect(segment, "[uo]") ~ "back")) %>% 
+  mutate(next_segment = lead(segment)) %>% 
+  filter(segment != "#",
+         next_segment != "#") %>% 
+  count(glottocode, segment, next_segment) ->
+  unnested_andic_with_hash_back_front
+
+unnested_andic_with_hash_back_front %>% 
+  mutate(pairs = str_c(segment, " ", next_segment)) %>% 
+  group_by(glottocode) %>% 
+  mutate(overall = sum(n),
+         ratio = n/overall) %>% 
+  top_n(20) %>% 
+  mutate(pairs = reorder_within(pairs, ratio, glottocode)) %>% 
+  ggplot(aes(ratio, pairs))+
+  geom_point()+
+  facet_wrap(~glottocode, scales = "free")+
+  scale_y_reordered()
+```
+
