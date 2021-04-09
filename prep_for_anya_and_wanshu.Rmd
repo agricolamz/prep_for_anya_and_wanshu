@@ -69,6 +69,20 @@ andic %>%
 glimpse(unnested_andic)
 ```
 
+
+In case we want to change something in our segments, use `case_when` and create a new dataframe, e. g. `unnested_andic_front_back`.
+
+```{r}
+unnested_andic %>% 
+  filter(!str_detect(segment, "[aoiue]")) %>%
+  mutate(segment = case_when(
+    str_detect(segment, "[ie]") ~ "front",
+    str_detect(segment, "a") ~ "mid",
+    str_detect(segment, "[uo]") ~ "back")) ->
+  unnested_andic_front_back
+```
+
+
 Extract singleton segment frequencies
 
 ```{r}

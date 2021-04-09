@@ -313,6 +313,14 @@ glimpse(unnested_andic)</code></pre>
 ## $ glottocode &lt;chr&gt; &quot;cham1309&quot;, &quot;cham1309&quot;, &quot;cham1309&quot;, &quot;cham1309&quot;, &quot;cham1309&quot;,…
 ## $ id         &lt;int&gt; 4, 5, 5, 6, 6, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 8,…
 ## $ segment    &lt;chr&gt; &quot;a&quot;, &quot;a&quot;, &quot;b&quot;, &quot;aˌ&quot;, &quot;b&quot;, &quot;a&quot;, &quot;d&quot;, &quot;a&quot;, &quot;tɬ&quot;, &quot;a&quot;, &quot;b&quot;, &quot;a…</code></pre>
+<p>In case we want to change something in our segments, use <code>case_when</code> and create a new dataframe, e. g. <code>unnested_andic_front_back</code>.</p>
+<pre class="r"><code>unnested_andic %&gt;% 
+  filter(!str_detect(segment, &quot;[aoiue]&quot;)) %&gt;%
+  mutate(segment = case_when(
+    str_detect(segment, &quot;[ie]&quot;) ~ &quot;front&quot;,
+    str_detect(segment, &quot;a&quot;) ~ &quot;mid&quot;,
+    str_detect(segment, &quot;[uo]&quot;) ~ &quot;back&quot;)) -&gt;
+  unnested_andic_front_back</code></pre>
 <p>Extract singleton segment frequencies</p>
 <pre class="r"><code>unnested_andic %&gt;% 
   count(glottocode, segment) %&gt;% 
