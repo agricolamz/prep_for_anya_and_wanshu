@@ -403,7 +403,7 @@ map(unique(for_plot$glottocode), function(x){
     labs(title = x,
          x = "observed frequencies",
          y = "expected frequencies")
-  ggsave(str_c("poa_", x, ".png"), width = 11) # you can change vowels to something
+  ggsave(str_c("vowels_", x, ".png"), width = 11) # you can change vowels to something
 })
 ```
 
