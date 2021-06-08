@@ -41,11 +41,9 @@ list.files()
 Read file into R:
 
 ```{r read_file, cache=TRUE}
-andic <- read_csv("andic_dicts.csv", 
-                  col_types = cols(ipa = col_character(),
-                                   concepticon = col_character(),
-                                   borrowing_source_word = col_character(),
-                                   borrowing_source_comment = col_character()))
+read_csv("andic_dicts.csv") %>% 
+  filter(glottocode != "toki1238") ->
+  andic
 ```
 
 Have a look:
@@ -182,7 +180,7 @@ pairs %>%
   group_by(glottocode) %>% 
   mutate(overall = sum(n),
          ratio = n/overall) %>% 
-  #top_n(20) %>% 
+  top_n(20) %>% 
   mutate(pairs = reorder_within(pairs, ratio, glottocode)) %>% 
   ggplot(aes(ratio, pairs))+
   geom_point()+
@@ -264,5 +262,145 @@ unnested_andic_with_hash_back_front %>%
   geom_point()+
   facet_wrap(~glottocode, scales = "free")+
   scale_y_reordered()
+```
+
+# Combine everything
+
+So for now we have tow tables:
+
+
+* `pairs` ("Bag of words" approach)
+
+```{r}
+pairs %>% 
+  slice(1:5)
+```
+
+
+* `unnested_andic_with_hash` (Markov-chain approach)
+
+```{r}
+unnested_andic_with_hash %>% 
+  slice(1:5)
+```
+
+
+Lets create a dataframe with pure probabilities:
+
+```{r}
+unnested_andic %>% 
+  count(glottocode, segment) %>% 
+  rename(raw_n = n) ->
+  pure_probabilities
+```
+
+
+We want to combine them together and connect with pure probabilities:
+
+```{r, fig.height=12}
+pairs %>% 
+  select(-pairs) %>% 
+  rename(segment = segment_1,
+         next_segment = segment_2,
+         n_bw = n) %>% 
+  full_join(unnested_andic_with_hash) %>% 
+  rename(n_mc = n) %>% 
+  full_join(pure_probabilities) %>% 
+  rename(n1 = raw_n) %>% 
+  full_join(pure_probabilities, by = c("glottocode" = "glottocode", "next_segment" = "segment")) %>% 
+  rename(n2 = raw_n) %>% 
+  group_by(glottocode) %>% 
+  mutate(bw = n_bw/sum(n_bw, na.rm = TRUE),
+         mc = n_mc/sum(n_mc, na.rm = TRUE),
+         expected_probabilities = (n1/sum(n1, na.rm = TRUE))*(n2/sum(n2, na.rm = TRUE))) %>% 
+  select(-n_bw, -n_mc, -n1, -n2) %>% 
+  pivot_longer(names_to = "approach", values_to = "observed_probabilities", bw:mc) %>% 
+  mutate(pair = str_c(segment, " ", next_segment)) %>% 
+  ggplot(aes(observed_probabilities, expected_probabilities, label = pair))+
+  geom_abline(slope = 1, intercept = 1, linetype = 2)+
+  geom_text()+
+  facet_grid(glottocode~approach, scales = "free")+
+  scale_x_log10()+
+  scale_y_log10()
+```
+
+We can't see anything, so I'd rather specify something:
+
+```{r}
+andic %>%
+  mutate(stress_count = str_count(ipa, "'")) %>% 
+  filter(is.na(bor),
+         !str_detect(lemma, " "),
+         stress_count < 2) %>% 
+  mutate(glottocode = ifelse(glottocode == "botl1242", str_c(glottocode, " ", reference), glottocode)) %>% 
+  distinct(ipa, glottocode) %>% 
+  mutate(id = 1:n(),
+         ipa = str_c(ipa, "-#")) %>% 
+  unnest_tokens(output = "segment", input = ipa, token = stringr::str_split, pattern = "-", drop = FALSE) %>% 
+  filter(!is.na(segment)) %>% 
+  filter(str_detect(segment, "[aiuoe#]"))  %>%  # HERE IS YOUR FILTER add hashǃ
+  mutate(segment = str_remove_all(segment, "['ˌ]")) ->
+  filtered_unnested_andic
+
+filtered_unnested_andic %>% 
+  count(glottocode, segment) %>% 
+  rename(raw_n = n) ->
+  pure_probabilities
+
+filtered_unnested_andic %>% 
+  distinct(ipa, glottocode, segment) %>% # remove repetitions
+  nest(data = segment) %>% 
+  mutate(data = map(data, unlist),
+         data = map(data, sort), # prevent from different orderings within the pair
+         length = map_dbl(data, length)) %>% 
+  filter(length > 1) %>% 
+  mutate(pairs = map(data, combn, m = 2, FUN = str_c, collapse = " ")) %>% 
+  unnest_longer(pairs) %>% 
+  count(glottocode, pairs, sort = TRUE) %>% 
+  separate(pairs, into = c("segment_1", "segment_2"), sep = " ", remove = FALSE) ->
+  pairs
+
+filtered_unnested_andic %>% 
+  mutate(next_segment = lead(segment)) %>% 
+  filter(segment != "#",
+         next_segment != "#") %>% 
+  count(glottocode, segment, next_segment) ->
+  unnested_andic_with_hash
+
+pairs %>% 
+  select(-pairs) %>% 
+  rename(segment = segment_1,
+         next_segment = segment_2,
+         n_bw = n) %>% 
+  full_join(unnested_andic_with_hash) %>% 
+  rename(n_mc = n) %>% 
+  full_join(pure_probabilities) %>% 
+  rename(n1 = raw_n) %>% 
+  full_join(pure_probabilities, by = c("glottocode" = "glottocode", "next_segment" = "segment")) %>% 
+  filter(segment != "#",
+         next_segment != "#") %>% 
+  rename(n2 = raw_n) %>% 
+  group_by(glottocode) %>% 
+  mutate(bw = n_bw/sum(n_bw, na.rm = TRUE),
+         mc = n_mc/sum(n_mc, na.rm = TRUE),
+         expected_probabilities = (n1/sum(n1, na.rm = TRUE))*(n2/sum(n2, na.rm = TRUE))) %>% 
+  select(-n_bw, -n_mc, -n1, -n2) %>% 
+  pivot_longer(names_to = "approach", values_to = "observed_probabilities", bw:mc) %>% 
+  mutate(pair = str_c(segment, " ", next_segment)) ->
+  for_plot
+
+map(unique(for_plot$glottocode), function(x){
+  for_plot %>% 
+    filter(glottocode == {{x}}) %>% 
+    ggplot(aes(observed_probabilities, expected_probabilities, label = pair))+
+    #geom_abline(slope = 1, intercept = 1, linetype = 2)+
+    geom_smooth(method = "lm", se = FALSE, linetype = 2)+
+    geom_text()+
+    facet_wrap(~approach, scales = "free")+
+    scale_x_log10()+
+    scale_y_log10()+
+    labs(title = x)
+  ggsave(str_c("vowels_", x, ".png")) # you can change vowels to something
+})  
 ```
 
