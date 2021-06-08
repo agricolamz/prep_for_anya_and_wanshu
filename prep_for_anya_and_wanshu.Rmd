@@ -395,12 +395,15 @@ map(unique(for_plot$glottocode), function(x){
     ggplot(aes(observed_probabilities, expected_probabilities, label = pair))+
     #geom_abline(slope = 1, intercept = 1, linetype = 2)+
     geom_smooth(method = "lm", se = FALSE, linetype = 2)+
-    geom_text()+
+    geom_point()+
+    ggrepel::geom_text_repel()+
     facet_wrap(~approach, scales = "free")+
     scale_x_log10()+
     scale_y_log10()+
-    labs(title = x)
-  ggsave(str_c("vowels_", x, ".png")) # you can change vowels to something
-})  
+    labs(title = x,
+         x = "observed frequencies",
+         y = "expected frequencies")
+  ggsave(str_c("poa_", x, ".png"), width = 11) # you can change vowels to something
+})
 ```
 

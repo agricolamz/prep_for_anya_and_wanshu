@@ -264,13 +264,20 @@ theme_set(theme_bw()) # for visualising</code></pre>
 <h1 number="2"><span class="header-section-number">2</span> Files</h1>
 <p>Donwload the script and the file with the dictionary (I prefer work with columns from B to O, so it is better to remove the rest) and put them in the separate folder. E. g. there are two files in the current folder:</p>
 <pre class="r"><code>list.files()</code></pre>
-<pre><code>##  [1] &quot;akhv1239.png&quot;                      &quot;andi1255.png&quot;                     
-##  [3] &quot;andic_dicts.csv&quot;                   &quot;bagv1239.png&quot;                     
-##  [5] &quot;botl1242 Alekseev 2006.png&quot;        &quot;botl1242 Saidova, Abusov 2012.png&quot;
-##  [7] &quot;cham1309.png&quot;                      &quot;ghod1238.png&quot;                     
-##  [9] &quot;kara1474.png&quot;                      &quot;prep_for_anya_and_wanshu_cache&quot;   
-## [11] &quot;prep_for_anya_and_wanshu_files&quot;    &quot;prep_for_anya_and_wanshu.html&quot;    
-## [13] &quot;prep_for_anya_and_wanshu.Rmd&quot;      &quot;tind1238.png&quot;</code></pre>
+<pre><code>##  [1] &quot;andic_dicts.csv&quot;                         
+##  [2] &quot;prep_for_anya_and_wanshu_cache&quot;          
+##  [3] &quot;prep_for_anya_and_wanshu_files&quot;          
+##  [4] &quot;prep_for_anya_and_wanshu.html&quot;           
+##  [5] &quot;prep_for_anya_and_wanshu.Rmd&quot;            
+##  [6] &quot;vowels_akhv1239.png&quot;                     
+##  [7] &quot;vowels_andi1255.png&quot;                     
+##  [8] &quot;vowels_bagv1239.png&quot;                     
+##  [9] &quot;vowels_botl1242 Alekseev 2006.png&quot;       
+## [10] &quot;vowels_botl1242 Saidova, Abusov 2012.png&quot;
+## [11] &quot;vowels_cham1309.png&quot;                     
+## [12] &quot;vowels_ghod1238.png&quot;                     
+## [13] &quot;vowels_kara1474.png&quot;                     
+## [14] &quot;vowels_tind1238.png&quot;</code></pre>
 <p>Read file into R:</p>
 <pre class="r"><code>read_csv(&quot;andic_dicts.csv&quot;) %&gt;% 
   filter(glottocode != &quot;toki1238&quot;) -&gt;
@@ -623,31 +630,71 @@ map(unique(for_plot$glottocode), function(x){
     ggplot(aes(observed_probabilities, expected_probabilities, label = pair))+
     #geom_abline(slope = 1, intercept = 1, linetype = 2)+
     geom_smooth(method = &quot;lm&quot;, se = FALSE, linetype = 2)+
-    geom_text()+
+    geom_point()+
+    ggrepel::geom_text_repel()+
     facet_wrap(~approach, scales = &quot;free&quot;)+
     scale_x_log10()+
     scale_y_log10()+
-    labs(title = x)
-  ggsave(str_c(&quot;vowels_&quot;, x, &quot;.png&quot;)) # you can change vowels to something
-})  </code></pre>
+    labs(title = x,
+         x = &quot;observed frequencies&quot;,
+         y = &quot;expected frequencies&quot;)
+  ggsave(str_c(&quot;poa_&quot;, x, &quot;.png&quot;), width = 11) # you can change vowels to something
+})</code></pre>
 <pre><code>## Warning: Removed 109 rows containing non-finite values (stat_smooth).</code></pre>
-<pre><code>## Warning: Removed 109 rows containing missing values (geom_text).</code></pre>
+<pre><code>## Warning: Removed 109 rows containing missing values (geom_point).</code></pre>
+<pre><code>## Warning: Removed 109 rows containing missing values (geom_text_repel).</code></pre>
+<pre><code>## Warning: ggrepel: 53 unlabeled data points (too many overlaps). Consider
+## increasing max.overlaps</code></pre>
+<pre><code>## Warning: ggrepel: 72 unlabeled data points (too many overlaps). Consider
+## increasing max.overlaps</code></pre>
 <pre><code>## Warning: Removed 34 rows containing non-finite values (stat_smooth).</code></pre>
-<pre><code>## Warning: Removed 34 rows containing missing values (geom_text).</code></pre>
+<pre><code>## Warning: Removed 34 rows containing missing values (geom_point).</code></pre>
+<pre><code>## Warning: Removed 34 rows containing missing values (geom_text_repel).</code></pre>
+<pre><code>## Warning: ggrepel: 3 unlabeled data points (too many overlaps). Consider
+## increasing max.overlaps</code></pre>
 <pre><code>## Warning: Removed 61 rows containing non-finite values (stat_smooth).</code></pre>
-<pre><code>## Warning: Removed 61 rows containing missing values (geom_text).</code></pre>
+<pre><code>## Warning: Removed 61 rows containing missing values (geom_point).</code></pre>
+<pre><code>## Warning: Removed 61 rows containing missing values (geom_text_repel).</code></pre>
+<pre><code>## Warning: ggrepel: 8 unlabeled data points (too many overlaps). Consider
+## increasing max.overlaps</code></pre>
+<pre><code>## Warning: ggrepel: 18 unlabeled data points (too many overlaps). Consider
+## increasing max.overlaps</code></pre>
 <pre><code>## Warning: Removed 90 rows containing non-finite values (stat_smooth).</code></pre>
-<pre><code>## Warning: Removed 90 rows containing missing values (geom_text).</code></pre>
+<pre><code>## Warning: Removed 90 rows containing missing values (geom_point).</code></pre>
+<pre><code>## Warning: Removed 90 rows containing missing values (geom_text_repel).</code></pre>
+<pre><code>## Warning: ggrepel: 9 unlabeled data points (too many overlaps). Consider
+## increasing max.overlaps</code></pre>
+<pre><code>## Warning: ggrepel: 47 unlabeled data points (too many overlaps). Consider
+## increasing max.overlaps</code></pre>
 <pre><code>## Warning: Removed 49 rows containing non-finite values (stat_smooth).</code></pre>
-<pre><code>## Warning: Removed 49 rows containing missing values (geom_text).</code></pre>
+<pre><code>## Warning: Removed 49 rows containing missing values (geom_point).</code></pre>
+<pre><code>## Warning: Removed 49 rows containing missing values (geom_text_repel).</code></pre>
+<pre><code>## Warning: ggrepel: 5 unlabeled data points (too many overlaps). Consider
+## increasing max.overlaps</code></pre>
 <pre><code>## Warning: Removed 85 rows containing non-finite values (stat_smooth).</code></pre>
-<pre><code>## Warning: Removed 85 rows containing missing values (geom_text).</code></pre>
+<pre><code>## Warning: Removed 85 rows containing missing values (geom_point).</code></pre>
+<pre><code>## Warning: Removed 85 rows containing missing values (geom_text_repel).</code></pre>
+<pre><code>## Warning: ggrepel: 44 unlabeled data points (too many overlaps). Consider
+## increasing max.overlaps</code></pre>
+<pre><code>## Warning: ggrepel: 83 unlabeled data points (too many overlaps). Consider
+## increasing max.overlaps</code></pre>
 <pre><code>## Warning: Removed 82 rows containing non-finite values (stat_smooth).</code></pre>
-<pre><code>## Warning: Removed 82 rows containing missing values (geom_text).</code></pre>
+<pre><code>## Warning: Removed 82 rows containing missing values (geom_point).</code></pre>
+<pre><code>## Warning: Removed 82 rows containing missing values (geom_text_repel).</code></pre>
+<pre><code>## Warning: ggrepel: 12 unlabeled data points (too many overlaps). Consider
+## increasing max.overlaps</code></pre>
+<pre><code>## Warning: ggrepel: 49 unlabeled data points (too many overlaps). Consider
+## increasing max.overlaps</code></pre>
 <pre><code>## Warning: Removed 15 rows containing non-finite values (stat_smooth).</code></pre>
-<pre><code>## Warning: Removed 15 rows containing missing values (geom_text).</code></pre>
+<pre><code>## Warning: Removed 15 rows containing missing values (geom_point).</code></pre>
+<pre><code>## Warning: Removed 15 rows containing missing values (geom_text_repel).</code></pre>
 <pre><code>## Warning: Removed 85 rows containing non-finite values (stat_smooth).</code></pre>
-<pre><code>## Warning: Removed 85 rows containing missing values (geom_text).</code></pre>
+<pre><code>## Warning: Removed 85 rows containing missing values (geom_point).</code></pre>
+<pre><code>## Warning: Removed 85 rows containing missing values (geom_text_repel).</code></pre>
+<pre><code>## Warning: ggrepel: 9 unlabeled data points (too many overlaps). Consider
+## increasing max.overlaps</code></pre>
+<pre><code>## Warning: ggrepel: 37 unlabeled data points (too many overlaps). Consider
+## increasing max.overlaps</code></pre>
 <pre><code>## [[1]]
 ## NULL
 ## 
