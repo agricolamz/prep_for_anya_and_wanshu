@@ -348,7 +348,7 @@ filtered_unnested_andic %>%
   pure_probabilities
 
 filtered_unnested_andic %>% 
-  distinct(ipa, glottocode, segment) %>% # remove repetitions
+  # distinct(ipa, glottocode, segment) %>% # remove repetitions
   nest(data = segment) %>% 
   mutate(data = map(data, unlist),
          data = map(data, sort), # prevent from different orderings within the pair
