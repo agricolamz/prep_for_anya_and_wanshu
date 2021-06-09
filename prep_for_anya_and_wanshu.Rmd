@@ -493,7 +493,7 @@ for_plot %>%
     labs(x = "observed frequencies (log)",
          y = "expected frequencies (log)")
 
-ggsave("for_linearity_relation.png", width = 10)
+ggsave("for_linearity_relation.png", width = 12, height = 10)
 library(lme4)
 library(lmerTest)
 
