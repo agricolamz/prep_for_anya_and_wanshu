@@ -389,6 +389,18 @@ pairs %>%
   mutate(pair = str_c(segment, " ", next_segment)) ->
   for_plot
 
+for_plot %>% 
+    ggplot(aes(observed_probabilities, expected_probabilities, label = pair))+
+    #geom_abline(slope = 1, intercept = 1, linetype = 2)+
+    geom_smooth(method = "lm", se = FALSE, linetype = 2)+
+    geom_point()+
+    ggrepel::geom_text_repel()+
+    facet_grid(glottocode~approach, scales = "free")+
+    scale_x_log10()+
+    scale_y_log10()+
+    labs(x = "observed frequencies (log)",
+         y = "expected frequencies (log)")
+
 map(unique(for_plot$glottocode), function(x){
   for_plot %>% 
     filter(glottocode == {{x}}) %>% 
@@ -406,4 +418,99 @@ map(unique(for_plot$glottocode), function(x){
   ggsave(str_c("vowels_", x, ".png"), width = 11) # you can change vowels to something
 })
 ```
+
+# What are the relation between expected and observed values?
+
+```{r}
+andic %>%
+  mutate(stress_count = str_count(ipa, "'")) %>% 
+  filter(is.na(bor),
+         !str_detect(lemma, " "),
+         stress_count < 2) %>% 
+  mutate(glottocode = ifelse(glottocode == "botl1242", str_c(glottocode, " ", reference), glottocode)) %>% 
+  distinct(ipa, glottocode) %>% 
+  mutate(id = 1:n(),
+         ipa = str_c(ipa, "-#")) %>% 
+  unnest_tokens(output = "segment", input = ipa, token = stringr::str_split, pattern = "-", drop = FALSE) %>% 
+  filter(!is.na(segment))  ->
+  filtered_unnested_andic
+
+filtered_unnested_andic %>% 
+  count(glottocode, segment) %>% 
+  rename(raw_n = n) ->
+  pure_probabilities
+
+filtered_unnested_andic %>% 
+  # distinct(ipa, glottocode, segment) %>% # remove repetitions
+  nest(data = segment) %>% 
+  mutate(data = map(data, unlist),
+         data = map(data, sort), # prevent from different orderings within the pair
+         length = map_dbl(data, length)) %>% 
+  filter(length > 1) %>% 
+  mutate(pairs = map(data, combn, m = 2, FUN = str_c, collapse = " ")) %>% 
+  unnest_longer(pairs) %>% 
+  count(glottocode, pairs, sort = TRUE) %>% 
+  separate(pairs, into = c("segment_1", "segment_2"), sep = " ", remove = FALSE) ->
+  pairs
+
+filtered_unnested_andic %>% 
+  mutate(next_segment = lead(segment)) %>% 
+  filter(segment != "#",
+         next_segment != "#") %>% 
+  count(glottocode, segment, next_segment) ->
+  unnested_andic_with_hash
+
+pairs %>% 
+  select(-pairs) %>% 
+  rename(segment = segment_1,
+         next_segment = segment_2,
+         n_bw = n) %>% 
+  full_join(unnested_andic_with_hash) %>% 
+  rename(n_mc = n) %>% 
+  full_join(pure_probabilities) %>% 
+  rename(n1 = raw_n) %>% 
+  full_join(pure_probabilities, by = c("glottocode" = "glottocode", "next_segment" = "segment")) %>% 
+  filter(segment != "#",
+         next_segment != "#") %>% 
+  rename(n2 = raw_n) %>% 
+  group_by(glottocode) %>% 
+  mutate(bw = n_bw/sum(n_bw, na.rm = TRUE),
+         mc = n_mc/sum(n_mc, na.rm = TRUE),
+         expected_probabilities = (n1/sum(n1, na.rm = TRUE))*(n2/sum(n2, na.rm = TRUE))) %>% 
+  select(-n_bw, -n_mc, -n1, -n2) %>% 
+  pivot_longer(names_to = "approach", values_to = "observed_probabilities", bw:mc) %>% 
+  mutate(pair = str_c(segment, " ", next_segment)) ->
+  for_plot
+
+for_plot %>% 
+    ggplot(aes(observed_probabilities, expected_probabilities, label = pair))+
+    geom_abline(slope = 1, intercept = 1, linetype = 2)+
+    geom_point(alpha = 0.08)+
+    geom_smooth(method = "lm", se = FALSE, linetype = 2)+
+    facet_wrap(glottocode~approach, scales = "free")+
+    scale_x_log10()+
+    scale_y_log10()+
+    labs(x = "observed frequencies (log)",
+         y = "expected frequencies (log)")
+
+ggsave("for_linearity_relation.png", width = 10)
+library(lme4)
+library(lmerTest)
+
+for_plot %>% 
+  mutate(observed_probabilities_log = log(observed_probabilities), 
+         expected_probabilities_log = log(expected_probabilities)) %>% 
+lmer(data = .,
+     formula = expected_probabilities_log ~ observed_probabilities_log  + (1|glottocode) + (1|approach)) ->
+  fit
+
+summary(fit)
+
+round(fit@beta)
+```
+
+Our model predicts relations regardless the language and method:
+
+$$\text{expected_probabilities_log} \approx -9  + text{observed_probabilities_log}$$
+I wanted model without intecept but it doesn't convere :/
 
