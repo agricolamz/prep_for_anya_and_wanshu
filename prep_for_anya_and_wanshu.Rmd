@@ -72,7 +72,8 @@ In case we want to change something in our segments, use `case_when` and create 
 
 ```{r}
 unnested_andic %>% 
-  distinct(ipa, glottocode, segment) %>% # remove repetitions
+  # THIS IS CAUSE OF MULTIPLE TRUBLES!!! (30.09.2021)
+  #distinct(ipa, glottocode, segment) %>% # remove repetitions
   filter(str_detect(segment, "[aoiue]")) %>%
   mutate(segment2 = case_when(
     str_detect(segment, "[ie]") ~ "front",
@@ -138,17 +139,20 @@ For a moment I will work with the first option, but lets keep the second in mind
 ```{r unnesting, cache=TRUE}
 unnested_andic_featured %>%
   select(-segment) %>% 
-  group_by(ipa) %>%  # remove those words that do have only one feature value per word
-  mutate(n = n()) %>% 
-  filter(n > 1) %>% 
-  select(-n) %>% 
+  group_by(glottocode, ipa) %>%
   nest(data = segment2) %>% 
   mutate(data = map(data, unlist),
-         data = map(data, unique),
-         data = map(data, sort), # prevent from different orderings within the pair
-         length = map_dbl(data, length),
-         data = ifelse(length == 1, map(data,function(x){c(x, x)}), data)) %>% 
-  mutate(pairs = map(data, combn, m = 2, FUN = str_c, collapse = " ")) %>% 
+         data = map(data, table),
+         data2 = map(data, names),
+         data2 = map(data2, unlist),
+         data = map(data, function(x) x[x > 1]),
+         data = map(data, names),
+         data3 = map2(data, data2, function(x, y){c(unlist(x), unlist(y))}),
+         data3 = map(data3, sort),
+         length = map_dbl(data3, length)) %>% 
+  filter(length > 1) %>% 
+  mutate(pairs = map(data3, combn, m = 2, FUN = str_c, collapse = " "),
+         pairs = map(pairs, unique)) %>% 
   unnest_longer(pairs) %>% 
   ungroup() %>% 
   count(glottocode, pairs, sort = TRUE) %>% 
@@ -298,4 +302,4 @@ probabilities_bag_of_words %>%
   facet_grid(glottocode~method, scales = "free")
 ```
 
-Hurrah! Dots are around the `y = x` line! Front and mid pair kind of boosted in bag of words method... Interesting...
+Hurrah! Dots are around the `y = x` line!
