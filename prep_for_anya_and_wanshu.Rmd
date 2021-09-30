@@ -72,7 +72,7 @@ In case we want to change something in our segments, use `case_when` and create 
 
 ```{r}
 unnested_andic %>% 
-  # THIS IS CAUSE OF MULTIPLE TRUBLES!!! (30.09.2021)
+  # THIS CAUSE MULTIPLE TRUBLES!!! (30.09.2021)
   #distinct(ipa, glottocode, segment) %>% # remove repetitions
   filter(str_detect(segment, "[aoiue]")) %>%
   mutate(segment2 = case_when(
